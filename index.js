@@ -1,9 +1,7 @@
 var http = require('http'),
   handler = require('./handler'),
-  config = require('./config'),
-  cache = require('./cache');
-
-
+  Cache = require('./cache'),
+  app = require('./util');
 
 /**
  * Handles HTTP requests.
@@ -11,11 +9,11 @@ var http = require('http'),
  * @param {Object} response - HTTP response object.
  */
 var onRequest = function(request, response) {
-  try {
-    handler.serve(request, response);
-  } catch (err) {
-    console.error('Failed to handle request:', err);
-  }
+  //try {
+    handler.serve(request, response, app);
+  //} catch (err) {
+    //app.log.error('Failed to handle request:', err);
+  //}
 };
 
 /**
@@ -23,18 +21,25 @@ var onRequest = function(request, response) {
  */
 var onStartUp = function() {
   if (process.env.NODE_ENV) {
-    console.log('Environment: ' + process.env.NODE_ENV);
+    app.log.info('Environment: ' + process.env.NODE_ENV);
   } else {
-    console.log('No environment defined');
+    app.log.info('No environment defined');
   }
-  cache.create();
-  console.log('Server has started on port ' + config.server.port);
+  app.cache = new Cache(app);
+  app.log.info('Server has started on port ' + app.config.server.port);
 };
 
+process.on('SIGINT', function() {
+  console.log('\nGracefully shutting down from SIGINT (Ctrl-C)');
+  // some other closing procedures go here
+  process.exit(0);
+})
 
-try {
-  http.createServer(onRequest).listen(config.server.port);
+
+//try {
+  http.createServer(onRequest).listen(app.config.server.port);
   onStartUp();
-} catch(err) {
-  console.error('Start up failed: ', err);
-}
+//} catch(err) {
+  //app.log.error('Start up failed: ', err);
+  //process.exit(0);
+//}

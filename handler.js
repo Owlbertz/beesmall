@@ -1,26 +1,25 @@
 var fs = require('fs'),
   gm = require('gm'),
-  url = require('url'),
-  config = require('./config'),
-  cache = require('./cache');
+  url = require('url');
 
 /**
  * Serves an image according to the HTTP request
  * @param {Object} request - HTTP request object.
  * @param {Object} response - HTTP response object.
+ * @param {Object} app - App util object.
  */
-var serve = function(request, response) {
+var serve = function(request, response, app) {
   var path = parsePath(url.parse(request.url).pathname);
     imageSize = path.size,
     imageName = path.name,
     imageType = getImageType(imageName),
-    imagePath = config.server.source + imageName,
-    imageConfig = config.images[imageSize],
+    imagePath = app.config.server.source + imageName,
+    imageConfig = app.config.images[imageSize],
     cacheImageName = imageSize + '_' + imageName.replace('/','_'),
-    cacheImagePath = config.server.cache.path + cacheImageName,
+    cacheImagePath = app.config.server.cache.path + cacheImageName,
     imageQuality = imageConfig.quality || 80;
 
-  cache.load(cacheImageName, function(file) {
+  app.cache.load(cacheImageName, function(file) {
     // cached image found
     response.writeHead(200, {'Content-Type': 'image/'+imageType});
     response.write(file, 'binary');
@@ -30,7 +29,7 @@ var serve = function(request, response) {
     gm(imagePath)
       .thumb(imageConfig.width, imageConfig.height, cacheImagePath, imageQuality, function (err, stdout, stderr, command) {
         if (err) {
-          console.log('Error while downsizing: ', err);
+          app.log.error('Error while downsizing: ', err);
           if (err.code === 1) {
             response.writeHead(404, {'Content-Type': 'text/plain'});
             response.write('Image not found.');
@@ -41,15 +40,15 @@ var serve = function(request, response) {
             response.end();
           }
         } else {
-          console.log('Downsizing successful. Saved as ' + cacheImagePath);
-          cache.load(cacheImageName, function(file) {
+          app.log.debug('Downsizing successful. Saved as ' + cacheImagePath);
+          app.cache.load(cacheImageName, function(file) {
             // image found
             response.writeHead(200, {'Content-Type': 'image/'+imageType});
             response.write(file, 'binary');
             response.end();
           });
-          console.log('Calling manage!');
-          cache.manage();
+          app.log.debug('Calling manage!');
+          app.cache.manage();
         }
       });
   }, true);
