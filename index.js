@@ -1,7 +1,9 @@
 var http = require('http'),
-  router = require('./router'),
   handler = require('./handler'),
-  config = require('./config');
+  config = require('./config'),
+  cache = require('./cache');
+
+
 
 /**
  * Handles HTTP requests.
@@ -12,14 +14,27 @@ var onRequest = function(request, response) {
   try {
     handler.serve(request, response);
   } catch (err) {
-    console.error(err);
+    console.error('Failed to handle request:', err);
   }
 };
 
-if (process.env.NODE_ENV) {
-  console.log('Environment: ' + process.env.NODE_ENV);
-} else {
-  console.log('No environment defined');
+/**
+ * Runs on server start.
+ */
+var onStartUp = function() {
+  if (process.env.NODE_ENV) {
+    console.log('Environment: ' + process.env.NODE_ENV);
+  } else {
+    console.log('No environment defined');
+  }
+  cache.create();
+  console.log('Server has started on port ' + config.server.port);
+};
+
+
+try {
+  http.createServer(onRequest).listen(config.server.port);
+  onStartUp();
+} catch(err) {
+  console.error('Start up failed: ', err);
 }
-http.createServer(onRequest).listen(config.server.port);
-console.log('Server has started on port ' + config.server.port);

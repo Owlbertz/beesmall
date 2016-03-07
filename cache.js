@@ -1,5 +1,4 @@
 var fs = require('fs'),
-  sys = require('sys'),
   exec = require('child_process').exec,
   getFolderSize = require('get-folder-size'),
   config = require('./config');
@@ -75,5 +74,15 @@ var manage = function() {
   });
 };
 
+/**
+ * Creates cache folder if not exists.
+ */
+var create = function() {
+  exec('mkdir -pv ' + config.server.cache.path, function(error, stdout, stderr) {
+    console.log(stdout);
+  });
+};
+
+exports.create = create;
 exports.load = load;
 exports.manage = manage;
