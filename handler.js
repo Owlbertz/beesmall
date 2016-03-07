@@ -3,7 +3,7 @@ var fs = require('fs'),
   url = require('url');
 
 /**
- * Serves an image according to the HTTP request
+ * Serves an image according to the HTTP request.
  * @param {Object} request - HTTP request object.
  * @param {Object} response - HTTP response object.
  * @param {Object} app - App util object.
@@ -29,18 +29,19 @@ var serve = function(request, response, app) {
     gm(imagePath)
       .thumb(imageConfig.width, imageConfig.height, cacheImagePath, imageQuality, function (err, stdout, stderr, command) {
         if (err) {
-          app.log.error('Error while downsizing: ', err);
           if (err.code === 1) {
+            app.log.debug('Image not found:', imagePath);
             response.writeHead(404, {'Content-Type': 'text/plain'});
             response.write('Image not found.');
             response.end();
           } else {
+            app.log.error('Unexpected error while downsizing:', err);
             response.writeHead(500, {'Content-Type': 'text/plain'});
             response.write('Error downsizing.');
             response.end();
           }
         } else {
-          app.log.debug('Downsizing successful. Saved as ' + cacheImagePath);
+          app.log.debug('Downsizing successful. Saved as', cacheImagePath);
           app.cache.load(cacheImageName, function(file) {
             // image found
             response.writeHead(200, {'Content-Type': 'image/'+imageType});
