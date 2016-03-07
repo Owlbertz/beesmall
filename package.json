@@ -1,0 +1,18 @@
+{
+  "name": "resize-on-request",
+  "version": "0.0.1",
+  "description": "Resize image on demand.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Marius Olbertz",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {
+    "extend": "^3.0.0",
+    "get-folder-size": "^1.0.0",
+    "gm": "^1.21.1",
+    "sys": "0.0.1"
+  }
+}
