@@ -57,8 +57,9 @@ Log.prototype.nl = function() {
  * @param {Object} args - Object of arguments passed to the public methods using `arguments`.
  */
 Log.prototype._log = function(level, args) {
+  var time = (new Date()).toLocaleTimeString();
   if (args.length && args[0] !== '') {
-    console.log.apply(console, [level].concat([].slice.apply(args)));
+    console.log.apply(console, [time, level].concat([].slice.apply(args)));
   }
 };
 
