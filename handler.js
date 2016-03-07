@@ -4,7 +4,11 @@ var fs = require('fs'),
   config = require('./config'),
   cache = require('./cache');
 
- 
+/**
+ * Serves an image according to the HTTP request
+ * @param {Object} request - HTTP request object.
+ * @param {Object} response - HTTP response object.
+ */
 var serve = function(request, response) {
   var path = parsePath(url.parse(request.url).pathname);
     imageSize = path.size,
@@ -51,7 +55,11 @@ var serve = function(request, response) {
   }, true);
 };
 
-
+/**
+ * Returns the MIME type for a given file.
+ * @param {String} fileName - Name of the requested image file.
+ * @return {String} MIME type.
+ */
 var getImageType = function(fileName) {
   var extension = fileName.split('.').pop(),
     imageTypes = {
@@ -59,11 +67,14 @@ var getImageType = function(fileName) {
       'jpeg': 'jpeg',
       'png': 'png'
     };
-  console.log('Image type: ' + imageTypes[extension]);
-
   return imageTypes[extension];
 };
 
+/**
+ * Parses the requested path and extracts all information.
+ * @param {String} pathname - Requested path.
+ * @return {Object} Parsed path.
+ */
 var parsePath = function(pathname) {
   var p = pathname.split('/');
   return {

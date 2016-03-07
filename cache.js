@@ -32,10 +32,6 @@ var load = function(fileName, foundFn, notFoundFn, touchOnFound) {
   });
 };
 
-var write = function(file, fileName) {
-
-};
-
 /**
  * Updates the cache by touching a given element.
  * @param {String} filename - Name of the file to touch.
@@ -79,6 +75,5 @@ var manage = function() {
   });
 };
 
-exports.write = write;
 exports.load = load;
 exports.manage = manage;
