@@ -1,7 +1,7 @@
 var http = require('http'),
   handler = require('./handler'),
-  Cache = require('./cache'),
-  app = require('./util');
+  Cache = require('./util/cache'),
+  app = require('./util/util');
 
 /**
  * Handles HTTP requests.

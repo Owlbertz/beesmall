@@ -35,6 +35,4 @@ Log.prototype._log = function(level, args) {
   }
 };
 
-
-
 module.exports = Log;

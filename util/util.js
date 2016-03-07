@@ -1,5 +1,5 @@
-var config = require('./util/config'),
-  Log = require('./util/log');
+var config = require('./config'),
+  Log = require('./log');
 
 var util = new Object();
 

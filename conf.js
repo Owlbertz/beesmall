@@ -4,7 +4,7 @@ exports.default = {
     source: '/path/to/images/', // Images source path
     cache: {
       path: 'cache/', // Path to save cached images
-      size: 200000 // Max size of the cache folder
+      size: 200000 // Max size of the cache folder in Bytes
     },
     log: {
       level: 'debug', // Log level
