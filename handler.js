@@ -16,11 +16,14 @@ var serve = function(request, response, app) {
     imagePath = app.config.server.source + imageName,
     imageConfig = app.config.images[imageSize],
     cacheImageName = imageSize + '_' + imageName.replace('/','_'),
-    cacheImagePath = app.config.server.cache.path + cacheImageName,
-    imageQuality = imageConfig.quality || 80;
+    cacheImagePath = app.config.server.cache.path + cacheImageName;
 
   if (typeof imageConfig === 'undefined') {
     app.log.warn('Image type', imageType, 'not defined!');
+    response.writeHead(500, {'Content-Type': 'text/plain'});
+    response.write('Invalid request: ' + imageSize + ' is not defined.');
+    response.end();
+    return;
   }
   app.cache.load(cacheImageName, function(file) {
     // cached image found
@@ -28,6 +31,7 @@ var serve = function(request, response, app) {
     response.write(file, 'binary');
     response.end();
   }, function(err) {
+    var imageQuality = imageConfig.quality || 80;
     // cached image not found
     gm(imagePath)
       .thumb(imageConfig.width, imageConfig.height, cacheImagePath, imageQuality, function (err, stdout, stderr, command) {
