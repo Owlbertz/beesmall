@@ -54,11 +54,11 @@ try {
   process.exit();
 }
 
+/*
 server.on('connection', function (socket) {
   // Add a newly connected socket
   var socketId = nextSocketId++;
   sockets[socketId] = socket;
-  //console.log('socket', socketId, 'opened');
 
   // Remove the socket when it closes
   socket.on('close', function () {
@@ -68,4 +68,4 @@ server.on('connection', function (socket) {
 
   // Extend socket lifetime for demo purposes
   //socket.setTimeout(500);
-});
+});*/

@@ -42,9 +42,11 @@ Cache.prototype.load = function(fileName, foundFn, notFoundFn, touchOnFound) {
  */
 Cache.prototype.update = function(fileName) {
   var app = this.app;
-  exec('touch ' + app.config.server.cache.path + fileName, function(error, stdout, stderr) {
-    app.log.debug('Touched ' + app.config.server.cache.path + fileName);
-  });
+  if (app.config.server.cache.touch) {
+    exec('touch ' + app.config.server.cache.path + fileName, function(error, stdout, stderr) {
+      app.log.debug('Touched ' + app.config.server.cache.path + fileName);
+    });
+  }
 };
 
 /**

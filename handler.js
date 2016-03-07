@@ -19,6 +19,9 @@ var serve = function(request, response, app) {
     cacheImagePath = app.config.server.cache.path + cacheImageName,
     imageQuality = imageConfig.quality || 80;
 
+  if (typeof imageConfig === 'undefined') {
+    app.log.warn('Image type', imageType, 'not defined!');
+  }
   app.cache.load(cacheImageName, function(file) {
     // cached image found
     response.writeHead(200, {'Content-Type': 'image/'+imageType});
@@ -30,7 +33,7 @@ var serve = function(request, response, app) {
       .thumb(imageConfig.width, imageConfig.height, cacheImagePath, imageQuality, function (err, stdout, stderr, command) {
         if (err) {
           if (err.code === 1) {
-            app.log.debug('Image not found:', imagePath);
+            app.log.warn('Image not found:', imagePath);
             response.writeHead(404, {'Content-Type': 'text/plain'});
             response.write('Image not found.');
             response.end();

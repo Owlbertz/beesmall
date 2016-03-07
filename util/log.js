@@ -6,9 +6,10 @@ var chalk = require('chalk');
  */
 var Log = function(config) {
   this.outputPerLevel = {
+    error: ['error'],
     info: ['info', 'error'],
-    debug: ['info', 'debug', 'error'],
-    error: ['error']
+    warn: ['info', 'warn', 'error'],
+    debug: ['info', 'warn', 'debug', 'error']
   };
 
   try {
@@ -33,6 +34,14 @@ Log.prototype.info = function() {
 Log.prototype.debug = function() {
   if (this.outputPerLevel[this.level].indexOf('debug') !== -1) {
     this._log(chalk.blue('[DEBUG]'), arguments);
+  }
+};
+/**
+ * Logs on warn level. Takes any parameter using `arguments` and passes them to `_log`.
+ */
+Log.prototype.warn = function() {
+  if (this.outputPerLevel[this.level].indexOf('warn') !== -1) {
+    this._log(chalk.yellow('[WARN]'), arguments);
   }
 };
 /**

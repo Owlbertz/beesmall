@@ -3,6 +3,7 @@ exports.default = {
     port: 8888, // Port to run on
     source: '/path/to/images/', // Images source path
     cache: {
+      touch: true, // if last used file should be touched to stay in cache longer
       path: 'cache/', // Path to save cached images
       size: 200000 // Max size of the cache folder in Bytes
     },
