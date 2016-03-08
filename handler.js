@@ -18,6 +18,13 @@ var serve = function(request, response, app) {
     cacheImageName = imageSize + '_' + imageName.replace('/','_'),
     cacheImagePath = app.config.server.cache.path + cacheImageName;
 
+  if (!path.length) { // if no URL is transmitted
+    response.writeHead(200, {'Content-Type': 'text/plain'});
+    response.write('Hi.');
+    response.end();
+    return;
+  }
+
   if (typeof imageConfig === 'undefined') {
     app.log.warn('Image type', imageType, 'not defined!');
     response.writeHead(500, {'Content-Type': 'text/plain'});
@@ -25,41 +32,69 @@ var serve = function(request, response, app) {
     response.end();
     return;
   }
-  app.cache.load(cacheImageName, function(file) {
-    // cached image found
-    response.writeHead(200, {'Content-Type': 'image/'+imageType});
-    response.write(file, 'binary');
-    response.end();
-  }, function(err) {
-    var imageQuality = imageConfig.quality || 80;
-    // cached image not found
-    gm(imagePath)
-      .thumb(imageConfig.width, imageConfig.height, cacheImagePath, imageQuality, function (err, stdout, stderr, command) {
-        if (err) {
-          if (err.code === 1) {
-            app.log.warn('Image not found:', imagePath);
-            response.writeHead(404, {'Content-Type': 'text/plain'});
-            response.write('Image not found.');
-            response.end();
-          } else {
-            app.log.error('Unexpected error while downsizing:', err);
-            response.writeHead(500, {'Content-Type': 'text/plain'});
-            response.write('Error downsizing.');
-            response.end();
-          }
-        } else {
-          app.log.debug('Downsizing successful. Saved as', cacheImagePath);
-          app.cache.load(cacheImageName, function(file) {
-            // image found
-            response.writeHead(200, {'Content-Type': 'image/'+imageType});
-            response.write(file, 'binary');
-            response.end();
-          });
-          app.log.debug('Calling manage!');
-          app.cache.manage();
+
+  if (app.config.server.useImageMagick) { // if Image Magick should be used
+    gm = gm.subClass({imageMagick: true});
+  }
+
+  if (app.config.server.validFormats.indexOf(imageType.toLowerCase()) === -1) { // image should not be processed -> return as is
+    fs.readFile(path, 'binary', function (err, file) { // check if image already exists
+      if (err) {
+        if (err.errno === -2) { // image not found
+          app.log.warn('Image not found:', imagePath);
+          response.writeHead(404, {'Content-Type': 'text/plain'});
+          response.write('Image not found.');
+          response.end();
+        } else { // other error
+          app.log.error(err);
+          response.writeHead(500, {'Content-Type': 'text/plain'});
+          response.write(err);
+          response.end();
         }
-      });
-  }, true);
+      } else { // image found
+        response.writeHead(200, {'Content-Type': 'image/'+imageType});
+        response.write(file, 'binary');
+        response.end();
+      }
+    });
+  } else { // Image type should be processed
+    app.cache.load(cacheImageName, function(file) {
+      // cached image found
+      response.writeHead(200, {'Content-Type': 'image/'+imageType});
+      response.write(file, 'binary');
+      response.end();
+    }, function(err) {
+      var imageQuality = imageConfig.quality || 80;
+      // cached image not found
+      gm(imagePath)
+        .thumb(imageConfig.width, imageConfig.height, cacheImagePath, imageQuality, function (err, stdout, stderr, command) {
+          if (err) {
+            if (err.code === 1) {
+              app.log.warn('Image not found:', imagePath);
+              response.writeHead(404, {'Content-Type': 'text/plain'});
+              response.write('Image not found.');
+              response.end();
+            } else {
+              app.log.error('Unexpected error while downsizing:', err);
+              response.writeHead(500, {'Content-Type': 'text/plain'});
+              response.write('Error downsizing.');
+              response.end();
+            }
+          } else {
+            app.log.debug('Downsizing successful. Saved as', cacheImagePath);
+            app.cache.load(cacheImageName, function(file) {
+              // image found
+              response.writeHead(200, {'Content-Type': 'image/'+imageType});
+              response.write(file, 'binary');
+              response.end();
+            });
+            app.log.debug('Calling manage!');
+            app.cache.manage();
+          }
+        });
+    }, true);
+  }
+
 };
 
 /**
@@ -86,7 +121,7 @@ var parsePath = function(pathname) {
   var p = pathname.split('/');
   return {
     size: p[1],
-    name: p.slice(2).join('/') // everything after second slash is image path
+    name: p.slice(2).join('/').replace(/%20/g, ' ') // everything after second slash is image path
   };
 };
 

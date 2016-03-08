@@ -30,6 +30,7 @@ var onStartUp = function() {
   app.log.info('Server has started on port ' + app.config.server.port);
 };
 
+console.log(process);
 
 process.on('SIGINT', function() {
   app.log.nl().info('Shutting down resize-on-request server...');

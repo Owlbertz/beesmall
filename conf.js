@@ -2,6 +2,8 @@ exports.default = {
   server: {
     port: 8888, // Port to run on
     source: '/path/to/images/', // Images source path
+    useImageMagick: false, // true if Image Magick should be used instead of Graphics Magick
+    validFormats: ['jpg', 'jpeg', 'png'], // File extensions that are processed; lower case
     cache: {
       touch: true, // if last used file should be touched to stay in cache longer
       path: 'cache/', // Path to save cached images
