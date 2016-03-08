@@ -28,8 +28,10 @@ var onStartUp = function() {
   } else {
     app.log.info('No environment defined');
   }
+
   // create and register cache
   app.cache = new Cache(app);
+
   app.log.info('Server has started on port ' + app.config.server.port);
 };
 

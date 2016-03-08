@@ -5,7 +5,8 @@ exports.default = {
     cache: {
       touch: true, // if last used file should be touched to stay in cache longer
       path: 'cache/', // Path to save cached images
-      size: 200000 // Max size of the cache folder in Bytes
+      size: 200000, // Max size of the cache folder in Bytes
+      age: 10 // Max age of files in cache in minutes
     },
     log: {
       level: 'debug', // Log level

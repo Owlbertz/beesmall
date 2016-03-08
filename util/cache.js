@@ -5,7 +5,16 @@ var fs = require('fs'),
 var Cache = function(app) {
   this.app = app;
   this.create();
+
+  var cache = this;
+  // register scheduler
+  if (typeof app.config.server.cache.age === 'number' && app.config.server.cache.age > 0) {
+    this.scheduler = setInterval(function() {
+      cache.cleanOld();
+    }, (app.config.server.cache.age * 60 * 1000) / 2); // look for old files every `max-age` / 2 
+  }
 };
+
 /**
  * Loads an element from the cache.
  * @param {String} filename - Name of the file to load.
@@ -63,6 +72,34 @@ Cache.prototype.clean = function(size) {
     });
   });
 };
+
+/**
+ * Cleans the cache by deleting the oldest element.
+ */
+Cache.prototype.cleanOld = function() {
+  var app = this.app;
+
+  if (typeof app.config.server.cache.age === 'number' && app.config.server.cache.age > 0) {
+
+    app.log.debug('Checking for files older than ' + app.config.server.cache.age + ' min...');
+
+    exec('find ' + app.config.server.cache.path + ' -mmin +' + app.config.server.cache.age, function(error, stdout, stderr) {
+      var files = stdout.split('\n');
+      files.pop();  // remove last element from list since this is empty string
+      files.shift();  // remove first element from list since this is this folder name
+
+      if (files.length) {
+        app.log.debug('Deleting ' + files.length + ' files from cache because of their age is > ' + app.config.server.cache.age + ' min...');
+        exec('rm -v ' + files.join(' '), function(error, stdout, stderr) {
+          app.log.debug(stdout);
+        });
+      }
+      
+    });    
+  }
+  
+};
+
 
 /**
  * Checks if the cache is too filled and calls clean if nesseccary.
