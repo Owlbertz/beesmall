@@ -72,7 +72,7 @@ Cache.prototype.manage = function() {
     app = this.app,
     maxCacheSize = app.config.server.cache.size;
 
-  getFolderSize(app.config.server.cache.path, function(err, size) {
+  this.getSize(function(err, size) {
     if (err) { throw err; }
     app.log.debug('Cache size: ' + size + ' / ' + maxCacheSize + ' bytes');
     app.log.debug('Cache level: ' + ((size/maxCacheSize) * 100).toFixed(2) + ' %');
@@ -85,11 +85,26 @@ Cache.prototype.manage = function() {
 };
 
 /**
+ * Get the current cache size
+ * @param {Function} callback - Callback to be executed after the size has been calculated.
+ */
+Cache.prototype.getSize = function(callback) {
+  var cache = this,
+    app = this.app;
+
+  getFolderSize(app.config.server.cache.path, function(err, size) {
+    if (err) { throw err; }
+
+    callback(err, size);
+  });
+};
+
+/**
  * Creates cache folder if not exists.
  */
 Cache.prototype.create = function() {
   var app = this.app;
-  app.log.info('Creating cache...');
+  app.log.debug('Creating cache...');
 
   exec('mkdir -pv ' + app.config.server.cache.path, function(error, stdout, stderr) {
     app.log.info(stdout);
