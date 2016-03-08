@@ -13,12 +13,12 @@ var serve = function(request, response, app) {
     imageSize = path.size,
     imageName = path.name,
     imageType = getImageType(imageName),
-    imagePath = app.config.server.source + imageName,
-    imageConfig = app.config.images[imageSize],
+    imagePath = app.config.images.source + imageName,
+    imageConfig = app.config.images.types[imageSize],
     cacheImageName = imageSize + '_' + imageName.replace('/','_'),
     cacheImagePath = app.config.server.cache.path + cacheImageName;
 
-  if (!path.length) { // if no URL is transmitted
+  if (!path.name) { // if no URL is transmitted
     response.writeHead(200, {'Content-Type': 'text/plain'});
     response.write('Hi.');
     response.end();
@@ -37,7 +37,7 @@ var serve = function(request, response, app) {
     gm = gm.subClass({imageMagick: true});
   }
 
-  if (app.config.server.validFormats.indexOf(imageType.toLowerCase()) === -1) { // image should not be processed -> return as is
+  if (app.config.images.validFormats.indexOf(imageType.toLowerCase()) === -1) { // image should not be processed -> return as is
     fs.readFile(path, 'binary', function (err, file) { // check if image already exists
       if (err) {
         if (err.errno === -2) { // image not found
@@ -64,7 +64,7 @@ var serve = function(request, response, app) {
       response.write(file, 'binary');
       response.end();
     }, function(err) {
-      var imageQuality = imageConfig.quality || 80;
+      var imageQuality = imageConfig.quality || (app.config.images.quality || 100);
       // cached image not found
       gm(imagePath)
         .thumb(imageConfig.width, imageConfig.height, cacheImagePath, imageQuality, function (err, stdout, stderr, command) {
@@ -88,7 +88,7 @@ var serve = function(request, response, app) {
               response.write(file, 'binary');
               response.end();
             });
-            app.log.debug('Calling manage!');
+            // manage cache to clear old images
             app.cache.manage();
           }
         });
