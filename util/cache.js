@@ -9,6 +9,7 @@ var Cache = function(app) {
   var cache = this;
   // register scheduler
   if (typeof app.config.server.cache.age === 'number' && app.config.server.cache.age > 0) {
+    cache.cleanOld();
     this.scheduler = setInterval(function() {
       cache.cleanOld();
     }, (app.config.server.cache.age * 60 * 1000) / 2); // look for old files every `max-age` / 2 
@@ -110,7 +111,6 @@ Cache.prototype.manage = function() {
     maxCacheSize = app.config.server.cache.size;
 
   this.getSize(function(err, size) {
-    if (err) { throw err; }
     app.log.debug('Cache size: ' + size + ' / ' + maxCacheSize + ' bytes');
     app.log.debug('Cache level: ' + ((size/maxCacheSize) * 100).toFixed(2) + ' %');
 
@@ -141,8 +141,6 @@ Cache.prototype.getSize = function(callback) {
  */
 Cache.prototype.create = function() {
   var app = this.app;
-  app.log.debug('Creating cache...');
-
   exec('mkdir -pv ' + app.config.server.cache.path, function(error, stdout, stderr) {
     app.log.info(stdout);
   });

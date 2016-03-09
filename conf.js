@@ -17,6 +17,7 @@ exports.default = {
     quality: 80, // Fallback quality
     source: '/path/to/images/', // Images source path
     validFormats: ['jpg', 'jpeg', 'png'], // File extensions that are processed; lower case
+    enableCustom: true, // Enable custom requests like /200x200@100/path/to/image.jpg
     types: { // Image types that are supported
       small: {
         width: 200,

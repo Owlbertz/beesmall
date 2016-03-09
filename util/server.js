@@ -14,11 +14,11 @@ var start = function(app) {
    * @param {Object} response - HTTP response object.
    */
   var onRequest = function(request, response) {
-    try {
+    //try {
       handler.serve(request, response, app);
-    } catch (err) {
-      app.log.error('Failed to handle request:', err);
-    }
+    //} catch (err) {
+      //app.log.error('Failed to handle request:', err);
+    //}
   };
 
   process.on('SIGINT', function() {

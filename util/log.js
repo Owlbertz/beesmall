@@ -57,7 +57,7 @@ Log.prototype.error = function() {
  * @return {Object} this - the Log itself for method chaining.
  */
 Log.prototype.nl = function() {
-  console.log('\n');
+  console.log('');
   return this;
 };
 /**

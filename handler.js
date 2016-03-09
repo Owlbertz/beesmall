@@ -16,7 +16,8 @@ var serve = function(request, response, app) {
     imagePath = app.config.images.source + imageName,
     imageConfig = app.config.images.types[imageSize],
     cacheImageName = imageSize + '_' + imageName.replace('/','_'),
-    cacheImagePath = app.config.server.cache.path + cacheImageName;
+    cacheImagePath = app.config.server.cache.path + cacheImageName,
+    customSize = false; // used to detect custom size in request
 
   if (!path.name) { // if no URL is transmitted
     response.writeHead(200, {'Content-Type': 'text/plain'});
@@ -26,19 +27,29 @@ var serve = function(request, response, app) {
   }
 
   if (typeof imageConfig === 'undefined') {
-    app.log.warn('Image type', imageType, 'not defined!');
-    response.writeHead(500, {'Content-Type': 'text/plain'});
-    response.write('Invalid request: ' + imageSize + ' is not defined.');
-    response.end();
-    return;
+    customSize = imageSize.match(/(\d{0,4})x(\d{0,4})(@([0-100]))?/);
+    if (app.config.images.enableCustom && customSize) { // custom image request
+      imageConfig = {
+        width: parseInt(customSize[1]),
+        height: parseInt(customSize[2]),
+        quality: customSize[4] ? parseInt(customSize[4]) : undefined
+      };
+      app.log.debug('Custom image:', imageType);
+    } else { // invalid image request
+      app.log.warn('Image type', imageSize, 'not defined!');
+      response.writeHead(500, {'Content-Type': 'text/plain'});
+      response.write('Invalid request: ' + imageSize + ' is not defined.');
+      response.end();
+      return;
+    }
   }
 
   if (app.config.server.useImageMagick) { // if Image Magick should be used
     gm = gm.subClass({imageMagick: true});
   }
 
-  if (app.config.images.validFormats.indexOf(imageType.toLowerCase()) === -1) { // image should not be processed -> return as is
-    fs.readFile(path, 'binary', function (err, file) { // check if image already exists
+  if (!customSize && app.config.images.validFormats.indexOf(imageType.toLowerCase()) === -1) { // image should not be processed -> return as is
+    fs.readFile(imagePath, 'binary', function (err, file) { // load original image
       if (err) {
         if (err.errno === -2) { // image not found
           app.log.warn('Image not found:', imagePath);
