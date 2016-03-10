@@ -12,7 +12,7 @@ var serve = function(request, response, app) {
   var path = parsePath(url.parse(request.url).pathname);
     imageSize = path.size,
     imageName = path.name,
-    imageType = getImageType(imageName),
+    imageMimeType = getImageMimeType(imageName),
     imagePath = app.config.images.source + imageName,
     imageConfig = app.config.images.types[imageSize],
     cacheImageName = imageSize + '_' + imageName.replace('/','_'),
@@ -48,7 +48,7 @@ var serve = function(request, response, app) {
     gm = gm.subClass({imageMagick: true});
   }
 
-  if (!customSize && app.config.images.validFormats.indexOf(imageType.toLowerCase()) === -1) { // image should not be processed -> return as is
+  if (!customSize && app.config.images.validFormats.indexOf(imageMimeType.toLowerCase()) === -1) { // image should not be processed -> return as is
     fs.readFile(imagePath, 'binary', function (err, file) { // load original image
       if (err) {
         if (err.errno === -2) { // image not found
@@ -63,18 +63,18 @@ var serve = function(request, response, app) {
           response.end();
         }
       } else { // image found
-        response.writeHead(200, {'Content-Type': 'image/'+imageType});
+        response.writeHead(200, {'Content-Type': 'image/'+imageMimeType});
         response.write(file, 'binary');
         response.end();
       }
     });
   } else { // Image type should be processed
-    app.cache.load(cacheImageName, function(file) {
+    app.cache.load(cacheImageName, imageName, function(file) {
       // cached image found
-      response.writeHead(200, {'Content-Type': 'image/'+imageType});
+      response.writeHead(200, {'Content-Type': 'image/'+imageMimeType});
       response.write(file, 'binary');
       response.end();
-    }, function(err) {
+    }, function() {
       var imageQuality = imageConfig.quality || (app.config.images.quality || 100);
       // cached image not found
       gm(imagePath)
@@ -93,9 +93,9 @@ var serve = function(request, response, app) {
             }
           } else {
             app.log.debug('Downsizing successful. Saved as', cacheImagePath);
-            app.cache.load(cacheImageName, function(file) {
+            app.cache.load(cacheImageName, imageName, function(file) {
               // image found
-              response.writeHead(200, {'Content-Type': 'image/'+imageType});
+              response.writeHead(200, {'Content-Type': 'image/'+imageMimeType});
               response.write(file, 'binary');
               response.end();
             });
@@ -113,7 +113,7 @@ var serve = function(request, response, app) {
  * @param {String} fileName - Name of the requested image file.
  * @return {String} MIME type.
  */
-var getImageType = function(fileName) {
+var getImageMimeType = function(fileName) {
   var extension = fileName.split('.').pop(),
     imageTypes = {
       'jpg': 'jpeg',

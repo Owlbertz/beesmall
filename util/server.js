@@ -21,9 +21,13 @@ var start = function(app) {
     //}
   };
 
+  /**
+   * Listenes to Ctrl + C command for process.
+   */
   process.on('SIGINT', function() {
     app.log.nl().info('Shutting down resize-on-request server...');
-    // some other closing procedures go here
+    app.log.info('Waiting for open connections to close...');
+
     server.close(function() {
       app.log.info('Done. Bye bye...');
       app = null;

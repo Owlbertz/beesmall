@@ -23,28 +23,37 @@ var Cache = function(app) {
  * @param {Function} notFoundFn - Function to be executed when the file is not found.
  * @param {String} touchOnFound - If the file should be touched if it is found.
  */
-Cache.prototype.load = function(fileName, foundFn, notFoundFn, touchOnFound) {
+Cache.prototype.load = function(fileName, originalName, foundFn, notFoundFn, touchOnFound) {
   var path = this.app.config.server.cache.path + fileName,
     cache = this,
     app = this.app;
-  fs.readFile(path, 'binary', function (err, file) { // check if image already exists
-    if (err) {
-      if (err.errno === -2) { // cached image not found
-        notFoundFn(err);
-      } else { // other error
-        app.log.error(err);
-        response.writeHead(500, {'Content-Type': 'text/plain'});
-        response.write(err);
-        response.end();
-      }
-    } else { // cached image found
-      if (touchOnFound) {
-        cache.update(fileName);
-      }
-      foundFn(file);
+
+  // check if original file is newer than cached file
+  this._fileIsNewer(originalName, fileName, function(isNewer) {
+    if (isNewer) {
+      notFoundFn();
+    } else {
+      fs.readFile(path, 'binary', function (err, file) { // check if image already exists
+        if (err) {
+          if (err.errno === -2) { // cached image not found
+            notFoundFn();
+          } else { // other error
+            app.log.error(err);
+            response.writeHead(500, {'Content-Type': 'text/plain'});
+            response.write(err);
+            response.end();
+          }
+        } else { // cached image found
+          if (touchOnFound) {
+            cache.update(fileName);
+          }
+          foundFn(file);
+        }
+      });
     }
   });
 };
+
 
 /**
  * Updates the cache by touching a given element.
@@ -146,5 +155,22 @@ Cache.prototype.create = function() {
   });
 };
 
+/**
+ * Checks if file 1 is newer than file 2
+ * @param {String} fileName1 - Name of file 1
+ * @param {String} fileName2 - Name of file 2
+ * @param {Function} callback - Callback to be executed if file1 is newer
+ */
+Cache.prototype._fileIsNewer = function(fileName1, fileName2, callback) {
+  var app = this.app;
+  exec('find ' + app.config.images.source + fileName1 + ' -cnewer ' + app.config.server.cache.path + fileName2, function(error, stdout, stderr) {
+    var isNewer = false;
+    if (stdout) {
+      isNewer = true;
+      app.log.debug('Original is newer than cached file...')
+    }
+    callback(isNewer);
+  });
+}
 
 module.exports = Cache;
