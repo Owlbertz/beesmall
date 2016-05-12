@@ -1,7 +1,6 @@
 var http = require('http'),
-  handler = require('../handler');
-
-var server;
+  beesmall = require('../index'),
+  server;
 
 /**
  * Starts the server.
@@ -15,7 +14,7 @@ var start = function(app) {
    */
   var onRequest = function(request, response) {
     //try {
-      handler.serve(request, response, app);
+      beesmall.serve(request, response, app);
     //} catch (err) {
       //app.log.error('Failed to handle request:', err);
     //}

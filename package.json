@@ -4,8 +4,7 @@
   "description": "Resize images on demand.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "cacheinfo": "node index.js --cacheinfo"
+    "start": "node server.js"
   },
   "author": "Marius Olbertz",
   "license": "MIT",

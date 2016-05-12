@@ -1,7 +1,12 @@
 var fs = require('fs'),
   exec = require('child_process').exec,
-  getFolderSize = require('get-folder-size');
+  getFolderSize = require('get-folder-size'),
+  extend = require('extend');
 
+/**
+ * Cache class to manage cached objects.
+ * @param {Object} app - App util object containing the config.
+ */
 var Cache = function(app) {
   this.app = app;
   this.create();
@@ -21,13 +26,12 @@ var Cache = function(app) {
  * @param {String} filename - Name of the file to load.
  * @param {Function} foundFn - Function to be executed when the file is found.
  * @param {Function} notFoundFn - Function to be executed when the file is not found.
- * @param {String} touchOnFound - If the file should be touched if it is found.
  */
-Cache.prototype.load = function(fileName, originalName, foundFn, notFoundFn, touchOnFound) {
+Cache.prototype.load = function(fileName, originalName, foundFn, notFoundFn) {
   var path = this.app.config.server.cache.path + fileName,
     cache = this,
     app = this.app;
-
+  
   // check if original file is newer than cached file
   this._fileIsNewer(originalName, fileName, function(isNewer) {
     if (isNewer) {
@@ -44,9 +48,7 @@ Cache.prototype.load = function(fileName, originalName, foundFn, notFoundFn, tou
             response.end();
           }
         } else { // cached image found
-          if (touchOnFound) {
-            cache.update(fileName);
-          }
+          cache.update(fileName);
           foundFn(file);
         }
       });
@@ -54,6 +56,36 @@ Cache.prototype.load = function(fileName, originalName, foundFn, notFoundFn, tou
   });
 };
 
+/**
+ * Puts a new file into the cache.
+ * @param {String} fileName - Name of the file to put.
+ * @param {String} originalName - Name of the original file.
+ */
+Cache.prototype.put = function(fileName, originalName) {
+  var cache = this,
+    app = this.app;
+  app.log.debug('Called Cache#put()');
+  // store information about file in Cache object
+  if (!cache.content[fileName]) {
+    app.log.debug('File not yet in cache.');
+    cache._getModificationTime(app.config.images.source + originalName, function(modificationtime) {
+      app.log.debug('Putting to cache:', fileName, modificationtime);
+      cache.content[fileName] = {
+        lastAccess: null,
+        created: new Date(),
+        numberOfAccesses: 0,
+        originalModificationTime: modificationtime,
+        originalName: originalName
+      };
+    });
+  } else {
+    app.log.debug('File already in cache.');
+    cache.content[fileName].numberOfAccesses++;
+    cache.content[fileName].lastAccess = new Date();
+  }
+ 
+  app.log.debug('Put file to cache:', cache.content);
+};
 
 /**
  * Updates the cache by touching a given element.
@@ -61,6 +93,14 @@ Cache.prototype.load = function(fileName, originalName, foundFn, notFoundFn, tou
  */
 Cache.prototype.update = function(fileName) {
   var app = this.app;
+
+  var numberOfAccesses = this.content[fileName] ? this.content[fileName].numberOfAccesses : 0;
+  if (this.content[fileName]) {
+    this.content[fileName].numberOfAccesses = this.content[fileName].numberOfAccesses + 1;
+    this.content[fileName].lastAccess = new Date();
+  }
+  app.log.debug('Update file in cache:', this.content[fileName]);
+
   if (app.config.server.cache.touch) {
     exec('touch ' + app.config.server.cache.path + fileName, function(error, stdout, stderr) {
       app.log.debug('Touched ' + app.config.server.cache.path + fileName);
@@ -79,6 +119,7 @@ Cache.prototype.clean = function(size) {
     files.pop(); // remove last element from list since this is empty string
     exec('rm -v ' + app.config.server.cache.path + files[files.length-1], function(error, stdout, stderr) {
       app.log.debug(stdout);
+      cache._removeFromContent(files[files.length-1]);
     });
   });
 };
@@ -87,7 +128,8 @@ Cache.prototype.clean = function(size) {
  * Cleans the cache by deleting the oldest element.
  */
 Cache.prototype.cleanOld = function() {
-  var app = this.app;
+  var cache = this,
+    app = this.app;
 
   if (typeof app.config.server.cache.age === 'number' && app.config.server.cache.age > 0) {
 
@@ -102,6 +144,7 @@ Cache.prototype.cleanOld = function() {
         app.log.debug('Deleting ' + files.length + ' files from cache because of their age is > ' + app.config.server.cache.age + ' min...');
         exec('rm -v ' + files.join(' '), function(error, stdout, stderr) {
           app.log.debug(stdout);
+          cache._removeFromContent(files);
         });
       }
       
@@ -150,27 +193,91 @@ Cache.prototype.getSize = function(callback) {
  */
 Cache.prototype.create = function() {
   var app = this.app;
+
+  // create cache dir if not exists
   exec('mkdir -pv ' + app.config.server.cache.path, function(error, stdout, stderr) {
     app.log.info(stdout);
   });
+
+  // initialize current content
+  this.content = {};
+
 };
 
 /**
- * Checks if file 1 is newer than file 2
- * @param {String} fileName1 - Name of file 1
- * @param {String} fileName2 - Name of file 2
- * @param {Function} callback - Callback to be executed if file1 is newer
+ * Checks if file 1 is newer than file 2.
+ * @param {String} fileName1 - Name of file 1.
+ * @param {String} fileName2 - Name of file 2.
+ * @param {Function} callback - Callback to be executed.
+ *                            @param {Boolean} isNewer
  */
 Cache.prototype._fileIsNewer = function(fileName1, fileName2, callback) {
   var app = this.app;
+  app.log.debug('Comparing ' + fileName1 + ' (original) ' + fileName2 + ' (cached)');
   exec('find ' + app.config.images.source + fileName1 + ' -cnewer ' + app.config.server.cache.path + fileName2, function(error, stdout, stderr) {
     var isNewer = false;
     if (stdout) {
       isNewer = true;
-      app.log.debug('Original is newer than cached file...')
+      app.log.debug('Original is newer than cached file...', stdout);
+    } else {
+      app.log.debug('Original is older than cached file...');
     }
     callback(isNewer);
   });
+};
+
+/**
+ * Reads modificationtime of a file.
+ * @param {String} fileName1 - Name of file 1.
+ * @param {Function} callback - Callback to be executed.
+ */
+Cache.prototype._getModificationTime = function(filePath, callback) {
+  this.app.log.debug('Called _getModificationTime()');
+
+  //if (!this._isWithinCachePath(filePath)) {
+    //console.log('File is not in cache path: ', this.app.config.server.cache.path, filePath);
+    //return false;
+  //}
+  var app = this.app;
+  exec('ls -l --time-style=full-iso ' + filePath, function(error, stdout, stderr) {
+    app.log.debug(filePath, 'last modified', stdout);
+    if (stdout) {
+      var d = stdout.split(' '),
+        date = new Date(d[5] + ' ' + d[6] + ' ' + d[7]); // e.g.  2016-03-10 17:12:53.312019999 +0100
+      callback(date);
+    } else {
+      app.log.warn('Unable to get modification time for file', filePath);
+      callback(undefined);
+    }
+  });
+};
+
+/**
+ * Checks if the given path lies within the cache.
+ * @param {String} fileName1 - Name of file 1.
+ * @return {Boolean} true if yes, false if not
+ */
+Cache.prototype._isWithinCachePath = function(filePath) {
+  var app = this.app;
+  return filePath.indexOf(app.config.server.cache.path) === 0;
+};
+
+/**
+ * Removes one ore more files from the internal Cache objekt.
+ * @param {String|Array} files - Files to be removed.
+ */
+Cache.prototype._removeFromContent = function(files) {
+  if (typeof files === 'string') {
+    if (typeof this.content[files] !== 'undefined') {
+      this.content[files] = null;
+    }
+  } else {
+    for (var f = 0; f < files.length; f++) {
+      if (typeof this.content[files[f]] !== 'undefined') {
+        this.content[files[f]] = null;
+      }
+    }
+  }
 }
 
 module.exports = Cache;

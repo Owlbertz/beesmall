@@ -9,12 +9,12 @@ var fs = require('fs'),
  * @param {Object} app - App util object.
  */
 var serve = function(request, response, app) {
-  var path = parsePath(url.parse(request.url).pathname);
+  var path = parsePath(url.parse(request.url).pathname, app);
     imageSize = path.size,
     imageName = path.name,
     imageMimeType = getImageMimeType(imageName),
     imagePath = app.config.images.source + imageName,
-    imageConfig = app.config.images.types[imageSize],
+    imageConfig = app.config.images.sizes[imageSize],
     cacheImageName = imageSize + '_' + imageName.replace('/','_'),
     cacheImagePath = app.config.server.cache.path + cacheImageName,
     customSize = false; // used to detect custom size in request
@@ -34,7 +34,7 @@ var serve = function(request, response, app) {
         height: parseInt(customSize[2]),
         quality: customSize[4] ? parseInt(customSize[4]) : undefined
       };
-      app.log.debug('Custom image:', imageType);
+      app.log.debug('Custom image:', imageConfig);
     } else { // invalid image request
       app.log.warn('Image type', imageSize, 'not defined!');
       response.writeHead(500, {'Content-Type': 'text/plain'});
@@ -70,7 +70,8 @@ var serve = function(request, response, app) {
     });
   } else { // Image type should be processed
     app.cache.load(cacheImageName, imageName, function(file) {
-      // cached image found
+      // cached image ft
+      // oundo 
       response.writeHead(200, {'Content-Type': 'image/'+imageMimeType});
       response.write(file, 'binary');
       response.end();
@@ -93,6 +94,7 @@ var serve = function(request, response, app) {
             }
           } else {
             app.log.debug('Downsizing successful. Saved as', cacheImagePath);
+            app.cache.put(cacheImageName, imageName);
             app.cache.load(cacheImageName, imageName, function(file) {
               // image found
               response.writeHead(200, {'Content-Type': 'image/'+imageMimeType});
@@ -126,9 +128,13 @@ var getImageMimeType = function(fileName) {
 /**
  * Parses the requested path and extracts all information.
  * @param {String} pathname - Requested path.
+ * @param {Object} app - App util object.
  * @return {Object} Parsed path.
  */
-var parsePath = function(pathname) {
+var parsePath = function(pathname, app) {
+  if (typeof app.config.server.urlPrefix === 'string' && app.config.server.urlPrefix.length) {
+    pathname = pathname.replace(app.config.server.urlPrefix, '');
+  }
   var p = pathname.split('/');
   return {
     size: p[1],
