@@ -11,6 +11,7 @@ var Log = function(config) {
     warn: ['info', 'warn', 'error'],
     debug: ['info', 'warn', 'debug', 'error']
   };
+  this.measures = {};
 
   try {
     this.level = config.server.log.level || 'info';
@@ -69,6 +70,37 @@ Log.prototype._log = function(level, args) {
   var time = (new Date()).toLocaleTimeString();
   if (args.length && args[0] !== '') {
     console.log.apply(console, [time, level].concat([].slice.apply(args)));
+  }
+};
+
+/**
+ * Measures time that passes by.
+ * Call startMeasure(id) before and endMeasure(id) after the action you want to measure.
+ * @param {String} id - ID of task that should be measured.
+ */
+Log.prototype.startMeasure = function(id) {
+  this.measures[id] = new Date();
+};
+
+/**
+ * Measures time that passes by.
+ * Call startMeasure(id) before and endMeasure(id) after the action you want to measure.
+ * Logs time passed in milli seconds.
+ * @param {String} id - ID of task that should be measured.
+ * @param {String} level - Level you want to log on. Default is debug.
+ */
+Log.prototype.endMeasure = function(id, level) {
+  if (this.measures[id]) {
+    var time = (new Date()) - this.measures[id],
+      text = 'Action \'' + id + '\' took ' + time + ' ms';
+    if (typeof this[level] === 'function') {
+      this[level](text);
+    } else {
+      this.debug(text);
+    }
+    delete this.measures[id];
+  } else {
+    throw new Error('You need to call startMeasure(\'' + id + '\' first!');
   }
 };
 

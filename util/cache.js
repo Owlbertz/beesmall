@@ -1,7 +1,9 @@
 var fs = require('fs'),
+  stream = require('stream'),
   exec = require('child_process').exec,
   getFolderSize = require('get-folder-size'),
-  extend = require('extend');
+  extend = require('extend'),
+  fileUtil = require('./fileUtil');
 
 /**
  * Cache class to manage cached objects.
@@ -23,37 +25,20 @@ var Cache = function(app) {
 
 /**
  * Loads an element from the cache.
- * @param {String} filename - Name of the file to load.
- * @param {Function} foundFn - Function to be executed when the file is found.
- * @param {Function} notFoundFn - Function to be executed when the file is not found.
+ * @param {String} cachedFileName - Name of the file to load.
+ * @param {String} originalFilePath - Path of the file original file to compate modification times.
+ * @param {Function} callback - Function to be executed when the file is not found:
+ *                              @param {Stream} data Stream from cached file if found, null if not.
  */
-Cache.prototype.load = function(fileName, originalName, foundFn, notFoundFn) {
-  var path = this.app.config.server.cache.path + fileName,
-    cache = this,
-    app = this.app;
-  
+Cache.prototype.load = function(cachedFileName, originalFilePath, cb) {
+  var cachedFilePath = this.app.config.server.cache.path + cachedFileName;
+
   // check if original file is newer than cached file
-  this._fileIsNewer(originalName, fileName, function(isNewer) {
-    if (isNewer) {
-      notFoundFn();
-    } else {
-      fs.readFile(path, 'binary', function (err, file) { // check if image already exists
-        if (err) {
-          if (err.errno === -2) { // cached image not found
-            notFoundFn();
-          } else { // other error
-            app.log.error(err);
-            response.writeHead(500, {'Content-Type': 'text/plain'});
-            response.write(err);
-            response.end();
-          }
-        } else { // cached image found
-          cache.update(fileName);
-          foundFn(file);
-        }
-      });
-    }
-  });
+  if (!fs.existsSync(cachedFilePath) || this._fileIsNewer(originalFilePath, cachedFilePath)) {
+    cb(null);
+  } else {
+    cb(fs.createReadStream(cachedFilePath, 'binary'));
+  }
 };
 
 /**
@@ -206,51 +191,15 @@ Cache.prototype.create = function() {
 
 /**
  * Checks if file 1 is newer than file 2.
- * @param {String} fileName1 - Name of file 1.
- * @param {String} fileName2 - Name of file 2.
- * @param {Function} callback - Callback to be executed.
- *                            @param {Boolean} isNewer
+ * @param {String} filePath1 - Path of file 1.
+ * @param {String} filePath2 - Path of file 2.
+ * @return {Boolean} True if file 1 is newer, false otherwise.
  */
-Cache.prototype._fileIsNewer = function(fileName1, fileName2, callback) {
-  var app = this.app;
-  app.log.debug('Comparing ' + fileName1 + ' (original) ' + fileName2 + ' (cached)');
-  exec('find ' + app.config.images.source + fileName1 + ' -cnewer ' + app.config.server.cache.path + fileName2, function(error, stdout, stderr) {
-    var isNewer = false;
-    if (stdout) {
-      isNewer = true;
-      app.log.debug('Original is newer than cached file...', stdout);
-    } else {
-      app.log.debug('Original is older than cached file...');
-    }
-    callback(isNewer);
-  });
+Cache.prototype._fileIsNewer = function(filePath1, filePath2) {
+  this.app.log.debug('Comparing ' + filePath1 + ' (original) ' + filePath2 + ' (cached)');
+  return fs.statSync(filePath1).mtime > fs.statSync(filePath2).mtime;
 };
 
-/**
- * Reads modificationtime of a file.
- * @param {String} fileName1 - Name of file 1.
- * @param {Function} callback - Callback to be executed.
- */
-Cache.prototype._getModificationTime = function(filePath, callback) {
-  this.app.log.debug('Called _getModificationTime()');
-
-  //if (!this._isWithinCachePath(filePath)) {
-    //console.log('File is not in cache path: ', this.app.config.server.cache.path, filePath);
-    //return false;
-  //}
-  var app = this.app;
-  exec('ls -l --time-style=full-iso ' + filePath, function(error, stdout, stderr) {
-    app.log.debug(filePath, 'last modified', stdout);
-    if (stdout) {
-      var d = stdout.split(' '),
-        date = new Date(d[5] + ' ' + d[6] + ' ' + d[7]); // e.g.  2016-03-10 17:12:53.312019999 +0100
-      callback(date);
-    } else {
-      app.log.warn('Unable to get modification time for file', filePath);
-      callback(undefined);
-    }
-  });
-};
 
 /**
  * Checks if the given path lies within the cache.
