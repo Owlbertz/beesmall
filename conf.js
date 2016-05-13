@@ -13,7 +13,9 @@ exports.default = {
       path: '', // Path of log file
       methods: {} // Define own functions for warn, debug, log, error
     },
-    urlPrefix: '' // Define an URL prefix that is ignored when accessing the API
+    // URL is the following: {urlPrefix}/{size}/{pathPrefix}/{path/to/image.jpg}
+    urlPrefix: '' // Define an URL prefix that is ignored when accessing the API, this is before the /{imgSize}/
+    pathPrefix: '' // Define an URL prefix that is ignored when accessing the API, this is after the /{imgSize}/
   }, 
   images: { 
     quality: 80, // Fallback quality

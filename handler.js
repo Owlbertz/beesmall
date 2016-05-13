@@ -9,8 +9,9 @@ var fs = require('fs'),
  * @param {Object} request - HTTP request object.
  * @param {Object} response - HTTP response object.
  * @param {Object} app - App util object.
+ * @param {Function} callback - Executed once the response has ended.
  */
-exports.serve = function(request, response, app) {
+exports.serve = function(request, response, app, callback) {
 
   var handleRequest = function() {
     var path = parsePath(url.parse(request.url).pathname);
@@ -27,6 +28,7 @@ exports.serve = function(request, response, app) {
       response.writeHead(200, {'Content-Type': 'text/plain'});
       response.write('Hi.');
       response.end();
+      callback();
       return;
     }
 
@@ -45,6 +47,7 @@ exports.serve = function(request, response, app) {
         response.writeHead(500, {'Content-Type': 'text/plain'});
         response.write('Invalid request: ' + imageSize + ' is not defined.');
         response.end();
+        callback();
       }
     }
 
@@ -60,11 +63,13 @@ exports.serve = function(request, response, app) {
             response.writeHead(404, {'Content-Type': 'text/plain'});
             response.write('Image not found.');
             response.end();
+            callback();
           } else { // other error
             app.log.error(err);
             response.writeHead(500, {'Content-Type': 'text/plain'});
             response.write(err);
             response.end();
+            callback();
           }
         })
         .pipe(response);
@@ -72,12 +77,11 @@ exports.serve = function(request, response, app) {
       app.cache.load(cacheImageName, originalImagePath, function(data) {
         if (data) {
           data.on('data', function(chunk) {
-            //console.log('Got data', chunk);
             response.write(chunk);
           })
           .on('end', function() {
-            //console.log('Finished data');
             response.end();
+            callback();
           });
         } else {
           var imageQuality = imageConfig.quality || (app.config.images.quality || 100);
@@ -90,11 +94,13 @@ exports.serve = function(request, response, app) {
                   response.writeHead(404, {'Content-Type': 'text/plain'});
                   response.write('Image not found.');
                   response.end();
+                  callback();
                 } else {
                   app.log.error('Unexpected error while downsizing:', err);
                   response.writeHead(500, {'Content-Type': 'text/plain'});
                   response.write('Error downsizing.');
                   response.end();
+                  callback();
                 }
               } else {
                 app.log.debug('Downsizing successful. Saved as', cacheImagePath);
@@ -106,6 +112,7 @@ exports.serve = function(request, response, app) {
                   })
                   .on('end', function() {
                     response.end();
+                    callback();
                   });
               }
           });
@@ -126,7 +133,7 @@ exports.serve = function(request, response, app) {
         'jpeg': 'jpeg',
         'png': 'png'
       };
-    return imageTypes[extension];
+    return imageTypes[extension] || extension;
   };
 
   /**
@@ -141,7 +148,7 @@ exports.serve = function(request, response, app) {
     var p = pathname.split('/');
     return {
       size: p[1],
-      name: p.slice(2).join('/').replace(/%20/g, ' ') // everything after second slash is image path
+      name: p.slice(2).join('/').replace(/%20/g, ' ').replace(app.config.server.pathPrefix, '') // everything after second slash is image path
     };
   };
 
