@@ -5,7 +5,12 @@ var server = require('./util/server'),
 
 
 app.cache = new Cache(app);
-exports.serve = function(request, response) {
-  return handler.serve(request, response, app);
+
+exports.setConfig(config) {
+  app.setConfig(config);
+};
+
+exports.serve = function(request, response, callback) {
+  return handler.serve(request, response, app, callback);
 };
 

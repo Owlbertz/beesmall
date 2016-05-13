@@ -1,11 +1,18 @@
-#resize-on-request
+# beesmall
 Resize images on demand.
 
 ## Usage
-To run use `$ npm start`.
+To run as a standalone server, use `$ npm start`.
+To use in an already existing server, use
+```js
+var beesmall = require('beesmall');
+
+/*...*/
+besmall.serve(request, response, callback);
+```
 
 ## Configuration
-Configurations can me made in the `conf.js`.
+Configurations can me made in the `conf.js` or by calling ```besmall.setConfig({/*...*/});```
 
 
 ## Todos

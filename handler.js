@@ -28,7 +28,7 @@ exports.serve = function(request, response, app, callback) {
       response.writeHead(200, {'Content-Type': 'text/plain'});
       response.write('Hi.');
       response.end();
-      callback();
+      _checkAndExecuteCallback();
       return;
     }
 
@@ -47,7 +47,7 @@ exports.serve = function(request, response, app, callback) {
         response.writeHead(500, {'Content-Type': 'text/plain'});
         response.write('Invalid request: ' + imageSize + ' is not defined.');
         response.end();
-        callback();
+        _checkAndExecuteCallback();
       }
     }
 
@@ -63,13 +63,13 @@ exports.serve = function(request, response, app, callback) {
             response.writeHead(404, {'Content-Type': 'text/plain'});
             response.write('Image not found.');
             response.end();
-            callback();
+            _checkAndExecuteCallback();
           } else { // other error
             app.log.error(err);
             response.writeHead(500, {'Content-Type': 'text/plain'});
             response.write(err);
             response.end();
-            callback();
+            _checkAndExecuteCallback();
           }
         })
         .pipe(response);
@@ -81,7 +81,7 @@ exports.serve = function(request, response, app, callback) {
           })
           .on('end', function() {
             response.end();
-            callback();
+            _checkAndExecuteCallback();
           });
         } else {
           var imageQuality = imageConfig.quality || (app.config.images.quality || 100);
@@ -94,13 +94,13 @@ exports.serve = function(request, response, app, callback) {
                   response.writeHead(404, {'Content-Type': 'text/plain'});
                   response.write('Image not found.');
                   response.end();
-                  callback();
+                  _checkAndExecuteCallback();
                 } else {
                   app.log.error('Unexpected error while downsizing:', err);
                   response.writeHead(500, {'Content-Type': 'text/plain'});
                   response.write('Error downsizing.');
                   response.end();
-                  callback();
+                  _checkAndExecuteCallback();
                 }
               } else {
                 app.log.debug('Downsizing successful. Saved as', cacheImagePath);
@@ -112,7 +112,7 @@ exports.serve = function(request, response, app, callback) {
                   })
                   .on('end', function() {
                     response.end();
-                    callback();
+                    _checkAndExecuteCallback();
                   });
               }
           });
@@ -152,6 +152,14 @@ exports.serve = function(request, response, app, callback) {
     };
   };
 
+  /**
+   * Wrapper to securly call the callback.
+   */
+  var _checkAndExecuteCallback = function() {
+    if (typeof callback === 'function') {
+      callback();
+    }
+  }
   // call action
   handleRequest();
 };

@@ -109,6 +109,33 @@ Cache.prototype.clean = function(size) {
   });
 };
 
+
+/**
+ * Reads modificationtime of a file.
+ * @param {String} fileName1 - Name of file 1.
+ * @param {Function} callback - Callback to be executed.
+ */
+Cache.prototype._getModificationTime = function(filePath, callback) {
+  this.app.log.debug('Called _getModificationTime()');
+
+  //if (!this._isWithinCachePath(filePath)) {
+    //console.log('File is not in cache path: ', this.app.config.server.cache.path, filePath);
+    //return false;
+  //}
+  var app = this.app;
+  exec('ls -l --time-style=full-iso ' + filePath, function(error, stdout, stderr) {
+    app.log.debug(filePath, 'last modified', stdout);
+    if (stdout) {
+      var d = stdout.split(' '),
+        date = new Date(d[5] + ' ' + d[6] + ' ' + d[7]); // e.g.  2016-03-10 17:12:53.312019999 +0100
+      callback(date);
+    } else {
+      app.log.warn('Unable to get modification time for file', filePath);
+      callback(undefined);
+    }
+  });
+};
+
 /**
  * Cleans the cache by deleting the oldest element.
  */
