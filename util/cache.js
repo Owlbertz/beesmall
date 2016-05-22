@@ -98,7 +98,8 @@ Cache.prototype.update = function(fileName) {
  * @param {Number} size - Current size of the cache.
  */
 Cache.prototype.clean = function(size) {
-  var app = this.app;
+  var app = this.app,
+    cache = this;
   exec('ls -t ' + app.config.server.cache.path, function(error, stdout, stderr) {
     var files = stdout.replace('  ', ' ').replace(/\n/g,',').split(',');
     files.pop(); // remove last element from list since this is empty string

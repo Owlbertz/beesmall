@@ -6,7 +6,7 @@ var server = require('./util/server'),
 
 app.cache = new Cache(app);
 
-exports.setConfig(config) {
+exports.setConfig = function(config) {
   app.setConfig(config);
 };
 

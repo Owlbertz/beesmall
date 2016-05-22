@@ -26,7 +26,7 @@ var start = function(app) {
   process.on('SIGINT', function() {
     app.log.nl().info('Shutting down resize-on-request server...');
     app.log.info('Waiting for open connections to close...');
-
+    
     server.close(function() {
       app.log.info('Done. Bye bye...');
       app = null;

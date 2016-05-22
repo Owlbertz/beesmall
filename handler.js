@@ -1,6 +1,7 @@
 var fs = require('fs'),
   stream = require('stream'),
   gm = require('gm'),
+  im = require('gm').subClass({imageMagick: true}),
   url = require('url'),
   fileUtil = require('./util/fileUtil');
 
@@ -52,7 +53,7 @@ exports.serve = function(request, response, app, callback) {
     }
 
     if (app.config.server.useImageMagick) { // if Image Magick should be used
-      gm = gm.subClass({imageMagick: true});
+      gm = im;
     }
 
     if (!customSize && (!imageMimeType || app.config.images.validFormats.indexOf(imageMimeType.toLowerCase()) === -1)) { // image should not be processed -> return as is
@@ -106,15 +107,24 @@ exports.serve = function(request, response, app, callback) {
                 app.log.debug('Downsizing successful. Saved as', cacheImagePath);
                 app.cache.put(cacheImageName, originalImageName);
                 app.cache.manage();
-                fs.createReadStream(cacheImagePath, 'binary')
+                /*fs.createReadStream(cacheImagePath, 'binary')
                   .on('data', function(chunk) {
                     response.write(chunk);
                   })
                   .on('end', function() {
                     response.end();
                     _checkAndExecuteCallback();
-                  });
+                  });*/
               }
+          });
+        // directly write back images
+        fs.createReadStream(originalImagePath, 'binary')
+          .on('data', function(chunk) {
+            response.write(chunk);
+          })
+          .on('end', function() {
+            response.end();
+            _checkAndExecuteCallback();
           });
         }
       });

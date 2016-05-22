@@ -45,7 +45,7 @@ exports.default = {
 exports.marius = {
   server: {
     cache: {
-      size: 150000 // 150 KB
+      size: 999000 // 999 KB
     }
   },
   images: {
